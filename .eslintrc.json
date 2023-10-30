@@ -13,6 +13,7 @@
       "error",
       { "anonymous": "always", "named": "never", "asyncArrow": "always" }
     ],
-    "@typescript-eslint/quotes": ["error", "double"]
+    "@typescript-eslint/quotes": ["error", "double"],
+    "@typescript-eslint/no-non-null-assertion": "off"
   }
 }
