@@ -10,7 +10,7 @@ function clip(x: number, min: number, max: number): number {
   return Math.min(Math.max(x, min), max)
 }
 
-export function simpleAgent(game: Game, player: integer): integer {
+export function simpleAgent(game: Game, player: number): number {
   const dx = game.ball[0] - game.paddles[player][0]
   return Math.abs(dx) < S.paddleWidth / 4 ? 0 : Math.sign(dx)
 }
@@ -29,7 +29,7 @@ export class Game {
     ]
   }
 
-  update(control: integer[]): null | 0 | 1 {
+  update(control: number[]): null | 0 | 1 {
     // Paddle
     this.paddles.forEach((paddle, i) => {
       paddle[0] = clip(
