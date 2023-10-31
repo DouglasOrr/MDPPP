@@ -1,13 +1,12 @@
 {
-    "compilerOptions": {
-        "target": "ES2022",
-        "lib": ["DOM", "DOM.Iterable", "ES2022", "ScriptHost"],
-        "types": ["vite/client"],
-        "moduleResolution": "node",
-        "strict": true,
-        "noEmit": true
-    },
-    "include": [
-        "./src/**/*"
-    ]
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022", "ScriptHost"],
+    "types": ["vite/client", "@types/jest"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["./src/**/*", "./tests/**/*"]
 }
