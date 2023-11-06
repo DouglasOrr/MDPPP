@@ -1,3 +1,7 @@
+// ndarray is a basic N-dimensional array library, styled on numpy
+//
+//   NdArray -- C-contiguous array that owns its data buffer (non-view)
+
 // Array utilities
 
 export function arrayEquals<T>(a: T[], b: T[]): boolean {
@@ -101,6 +105,21 @@ export class NdArray {
     return this
   }
 
+  map2_(
+    rhs: NdArray,
+    fn: (lhs: number, rhs: number, i: number) => number,
+  ): NdArray {
+    assertArrayEquals(
+      this.shape,
+      rhs.shape,
+      "map2 expects this.shape === rhs.shape",
+    )
+    for (let i = 0; i < this.data.length; ++i) {
+      this.data[i] = fn(this.data[i], rhs.data[i], i)
+    }
+    return this
+  }
+
   view_(shape: number[]): NdArray {
     assertEquals(
       arrayProduct(shape),
@@ -184,6 +203,13 @@ export class NdArray {
       }
     }
     return this
+  }
+
+  mean(): NdArray {
+    return new NdArray(
+      [],
+      [this.data.reduce((a, b) => a + b, 0) / this.data.length],
+    )
   }
 
   // (*g, m, k) @ (*g, k, n) -> (*g, m, n)

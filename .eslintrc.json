@@ -15,6 +15,13 @@
     ],
     "@typescript-eslint/quotes": ["error", "double"],
     "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/member-delimiter-style": [
+      "error",
+      {
+        "multiline": { "delimiter": "none" },
+        "singleline": { "delimiter": "semi", "requireLast": false }
+      }
+    ],
     "yoda": "off"
   }
 }

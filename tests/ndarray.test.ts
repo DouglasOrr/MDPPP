@@ -14,11 +14,14 @@ test("new NdArray", () => {
   expect(() => new NdArray([2, 1], [1000, 2000, 3000])).toThrow("3 === 2")
 })
 
-test("clone, map_", () => {
+test("clone, map_, map2_", () => {
   const a = new NdArray([1, 3]).fill_(100)
   const b = a.clone().map_((x, i) => 2 * x + i)
   expect(a.data).toStrictEqual([100, 100, 100])
   expect(b.data).toStrictEqual([200, 201, 202])
+
+  const c = a.clone().map2_(new NdArray([1, 3], [0, 10, 20]), (x, y) => x - y)
+  expect(c.data).toStrictEqual([100, 90, 80])
 })
 
 test("rand_", () => {
@@ -74,6 +77,13 @@ test("logSoftmax_", () => {
   sa.data.forEach((v, i) => {
     expect(v).toBeCloseTo(expected[i], 4)
   })
+})
+
+test("mean", () => {
+  const a = new NdArray([2, 3], [1, 2, 3, 4, 5, 6])
+  const mean = a.mean()
+  expect(mean.shape).toStrictEqual([])
+  expect(mean.data[0]).toBeCloseTo(3.5)
 })
 
 test("dot", () => {
