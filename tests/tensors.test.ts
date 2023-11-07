@@ -34,26 +34,13 @@ class TestModel extends T.Model {
     return T.dot(hidden, this.W1)
   }
 
-  hits(logits: NdArray, targets: NdArray): NdArray {
-    const N = logits.shape[1]
-    return targets
-      .clone()
-      .map_(
-        (t, i) =>
-          +(
-            logits.data[i * N + t] ===
-            Math.max(...logits.data.slice(i * N, (i + 1) * N))
-          ),
-      )
-  }
-
   loss(inputs: NdArray, targets: NdArray): { loss: number; accuracy: number } {
     const logits = this.logits(inputs)
-    const loss = T.softmaxCrossEntropy(logits, new T.Tensor(targets))
+    const loss = T.softmaxCrossEntropy(logits, targets)
     loss.grad.fill_(1)
     return {
       loss: loss.data.mean().data[0],
-      accuracy: this.hits(logits.data, targets).mean().data[0],
+      accuracy: T.accuracy(logits.data, targets).mean().data[0],
     }
   }
 }
@@ -83,7 +70,7 @@ test("softmaxCrossEntropy", () => {
   const logits = new T.Tensor(
     new NdArray([2, 4], [1000, 1000, 1000, 1000, -2100, -2100, -2000, -2100]),
   )
-  const targets = new T.Tensor(new NdArray([2, 1], [3, 2]))
+  const targets = new NdArray([2, 1], [3, 2])
   const loss = T.withGrad(() => {
     const loss = T.softmaxCrossEntropy(logits, targets)
     loss.grad.fill_(1)

@@ -81,10 +81,10 @@ export function relu(t: Tensor): Tensor {
   return result
 }
 
-export function softmaxCrossEntropy(logits: Tensor, target: Tensor): Tensor {
+export function softmaxCrossEntropy(logits: Tensor, target: NdArray): Tensor {
   assertArrayEquals(target.shape, [logits.shape[0], 1])
   const logSoftmax = logits.data.clone().logSoftmax_()
-  const losses = new Tensor(logSoftmax.gather(target.data).map_((x) => -x))
+  const losses = new Tensor(logSoftmax.gather(target).map_((x) => -x))
   _tape.push(() => {
     const nClasses = logits.shape[logits.ndim() - 1]
     logits.grad.map_((v, i) => {
@@ -93,11 +93,33 @@ export function softmaxCrossEntropy(logits: Tensor, target: Tensor): Tensor {
       const grad =
         lossGrad *
         (Math.exp(logSoftmax.data[i]) -
-          +(i % nClasses === target.data.data[targetI]))
+          +(i % nClasses === target.data[targetI]))
       return v + grad
     })
   })
   return losses
+}
+
+export function idxMax(values: number[], start: number, end: number): number {
+  let [idx, max] = [start, values[start]]
+  for (let i = start + 1; i < end; ++i) {
+    if (values[i] > max) {
+      idx = i
+      max = values[i]
+    }
+  }
+  return idx
+}
+
+// Elementwise accuracy
+// logits -- (B, N)
+// targets -- (B, 1)
+// returns -- (B, 1)
+export function accuracy(logits: NdArray, targets: NdArray): NdArray {
+  const N = logits.shape[1]
+  return targets
+    .clone()
+    .map_((t, i) => +(i * N + t === idxMax(logits.data, i * N, (i + 1) * N)))
 }
 
 // Models

@@ -1,3 +1,5 @@
+// A simple tennis-like game
+
 export const S = {
   dt: 0.01,
   bounds: { left: -0.5, right: 0.5, top: -1, bottom: 1 },
@@ -19,6 +21,7 @@ export class Game {
   ball: [number, number]
   ball_v: [number, number]
   paddles: Array<[number, number]>
+  bounceCount: number
 
   constructor() {
     this.ball = [0, 0]
@@ -27,6 +30,7 @@ export class Game {
       [0, S.bounds.bottom],
       [0, S.bounds.top],
     ]
+    this.bounceCount = 0
   }
 
   update(control: number[]): null | 0 | 1 {
@@ -50,12 +54,14 @@ export class Game {
         return 0
       }
       this.ball_v[1] *= bounceMultiplier
+      this.bounceCount += 1
     }
     if (this.ball[1] > S.bounds.bottom) {
       if (Math.abs(this.paddles[0][0] - this.ball[0]) > S.paddleWidth / 2) {
         return 1
       }
       this.ball_v[1] *= bounceMultiplier
+      this.bounceCount += 1
     }
     this.ball = [
       clip(this.ball[0], S.bounds.left, S.bounds.right),
