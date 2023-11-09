@@ -145,9 +145,13 @@ export class Model extends T.Model {
     }
   }
 
-  act(game: Game, player: number): number {
+  act(game: Game, player: number, debug: boolean): number {
     const state = new NdArray([1, S.nFeatures], getState(game, player))
     const logits = this.logits(state)
+    if (debug) {
+      console.log("agent.buffer.length", this.buffer.length)
+      console.log("agent.logits", logits.data.data)
+    }
     return T.idxMax(logits.data.data, 0, S.nActions) - 1
   }
 }
