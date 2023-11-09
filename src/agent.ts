@@ -4,6 +4,8 @@ import { NdArray } from "./ndarray"
 import type { Game } from "./pingpong"
 import * as T from "./tensors"
 
+const STATE_SIZE = 3
+
 function getState(game: Game, player: number): number[] {
   // Reflect the ball y-position for player 1 "from their view"
   return [
@@ -19,10 +21,9 @@ class ReplayBuffer {
   writeProbability: number
   state: NdArray
   control: NdArray
-  static readonly STATE_SIZE = 3
 
   constructor(capacity: number, writeProbability: number) {
-    this.state = new NdArray([capacity, ReplayBuffer.STATE_SIZE])
+    this.state = new NdArray([capacity, STATE_SIZE])
     this.control = new NdArray([capacity])
     this.length = 0
     this.writeProbability = writeProbability
@@ -36,14 +37,14 @@ class ReplayBuffer {
       } else {
         idx = Math.floor(Math.random() * this.length)
       }
-      const N = ReplayBuffer.STATE_SIZE
+      const N = STATE_SIZE
       this.state.data.splice(N * idx, N, ...getState(game, player))
       this.control.data[idx] = control
     }
   }
 
   sample(batchSize: number): [NdArray, NdArray] {
-    const N = ReplayBuffer.STATE_SIZE
+    const N = STATE_SIZE
     const state = new NdArray([batchSize, N])
     const control = new NdArray([batchSize, 1])
     for (let i = 0; i < batchSize; ++i) {
@@ -65,7 +66,6 @@ export const S = {
   writeProbability: 0.1,
   bufferMinForTraining: 100,
   // Model
-  nFeatures: 3,
   nActions: 3,
   nBuckets: 10,
   hiddenSize: 128,
@@ -93,9 +93,9 @@ export class Model extends T.Model {
         ),
     )
     this.buffer = new ReplayBuffer(S.bufferCapacity, S.writeProbability)
-    this.embed = this.addParameter([S.nFeatures, S.nBuckets, S.hiddenSize], 1.0)
+    this.embed = this.addParameter([STATE_SIZE, S.nBuckets, S.hiddenSize], 1.0)
     this.W0 = this.addParameter(
-      [S.nFeatures * S.hiddenSize, S.hiddenSize],
+      [STATE_SIZE * S.hiddenSize, S.hiddenSize],
       S.hiddenSize ** -0.5,
     )
     this.W1 = this.addParameter([S.hiddenSize, S.nActions], 0)
@@ -125,7 +125,7 @@ export class Model extends T.Model {
       T.gather(this.embed, T.transpose(buckets, [1, 0])),
       [1, 0, 2],
     )
-    hidden = T.view(hidden, [batchSize, S.nFeatures * S.hiddenSize])
+    hidden = T.view(hidden, [batchSize, STATE_SIZE * S.hiddenSize])
     hidden = T.dot(hidden, this.W0)
     hidden = T.relu(hidden)
     return T.dot(hidden, this.W1)
@@ -146,7 +146,7 @@ export class Model extends T.Model {
   }
 
   act(game: Game, player: number, debug: boolean): number {
-    const state = new NdArray([1, S.nFeatures], getState(game, player))
+    const state = new NdArray([1, STATE_SIZE], getState(game, player))
     const logits = this.logits(state)
     if (debug) {
       console.log("agent.buffer.length", this.buffer.length)
