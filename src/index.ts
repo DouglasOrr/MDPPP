@@ -66,12 +66,13 @@ export default class Main extends Phaser.Scene {
       this.gameState !== "paused"
     ) {
       // const playerControl = +this.keys!.right.isDown - +this.keys!.left.isDown
-      // const control = [playerControl, PingPong.simpleAgent(this.state, 1)]
-      const playerControl = PingPong.simpleAgent(this.state, 0)
-      const control = [
-        playerControl,
-        this.agent.act(this.state, 1, this.gameState === "step"),
-      ]
+      const scriptControl0 = PingPong.simpleAgent(this.state, 0)
+      const agentControl1 = this.agent.act(
+        this.state,
+        1,
+        this.gameState === "step",
+      )
+      const control = [scriptControl0, agentControl1]
       this.agent.observe(this.state, 0, control[0])
       this.agent.train()
       const outcome = this.state.update(control)
@@ -87,7 +88,6 @@ export default class Main extends Phaser.Scene {
       // End of game
       if (outcome !== null) {
         console.log(`Winner ${outcome}`)
-        // this.state = null
         this.state = new PingPong.Game()
       }
     }

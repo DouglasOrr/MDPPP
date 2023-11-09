@@ -4,14 +4,16 @@ import { NdArray } from "./ndarray"
 import type { Game } from "./pingpong"
 import * as T from "./tensors"
 
-const STATE_SIZE = 3
+const STATE_SIZE = 4
 
-function getState(game: Game, player: number): number[] {
+export function getState(game: Game, player: number): number[] {
   // Reflect the ball y-position for player 1 "from their view"
+  const ballSpeed = Math.sqrt(game.ball_v[0] ** 2 + game.ball_v[1] ** 2)
   return [
     game.ball[0],
     game.ball[1] * (1 - 2 * player),
-    game.paddles[player][0],
+    game.ball_v[0] / ballSpeed,
+    (game.ball_v[1] / ballSpeed) * (1 - 2 * player),
   ]
 }
 
@@ -20,11 +22,11 @@ class ReplayBuffer {
   length: number
   writeProbability: number
   state: NdArray
-  control: NdArray
+  position: NdArray
 
   constructor(capacity: number, writeProbability: number) {
     this.state = new NdArray([capacity, STATE_SIZE])
-    this.control = new NdArray([capacity])
+    this.position = new NdArray([capacity])
     this.length = 0
     this.writeProbability = writeProbability
   }
@@ -39,14 +41,14 @@ class ReplayBuffer {
       }
       const N = STATE_SIZE
       this.state.data.splice(N * idx, N, ...getState(game, player))
-      this.control.data[idx] = control
+      this.position.data[idx] = game.paddles[player][0]
     }
   }
 
   sample(batchSize: number): [NdArray, NdArray] {
     const N = STATE_SIZE
     const state = new NdArray([batchSize, N])
-    const control = new NdArray([batchSize, 1])
+    const position = new NdArray([batchSize, 1])
     for (let i = 0; i < batchSize; ++i) {
       const idx = Math.floor(Math.random() * this.length)
       state.data.splice(
@@ -54,9 +56,9 @@ class ReplayBuffer {
         N,
         ...this.state.data.slice(N * idx, N * (idx + 1)),
       )
-      control.data[i] = this.control.data[idx]
+      position.data[i] = this.position.data[idx]
     }
-    return [state, control]
+    return [state, position]
   }
 }
 
@@ -66,8 +68,7 @@ export const S = {
   writeProbability: 0.1,
   bufferMinForTraining: 100,
   // Model
-  nActions: 3,
-  nBuckets: 10,
+  nBuckets: 40,
   hiddenSize: 128,
   // Training
   batchSize: 20,
@@ -98,7 +99,7 @@ export class Model extends T.Model {
       [STATE_SIZE * S.hiddenSize, S.hiddenSize],
       S.hiddenSize ** -0.5,
     )
-    this.W1 = this.addParameter([S.hiddenSize, S.nActions], 0)
+    this.W1 = this.addParameter([S.hiddenSize, S.nBuckets], 0)
     this.trainLoss = []
     this.trainAccuracy = []
   }
@@ -134,8 +135,8 @@ export class Model extends T.Model {
   train(): void {
     if (S.bufferMinForTraining <= this.buffer.length) {
       this.step(() => {
-        const [state, targets] = this.buffer.sample(S.batchSize)
-        targets.map_((x) => x + 1)
+        let [state, targets] = this.buffer.sample(S.batchSize)
+        targets = this.bucketise(targets)
         const logits = this.logits(state)
         const losses = T.softmaxCrossEntropy(logits, targets)
         losses.grad.fill_(1)
@@ -148,10 +149,16 @@ export class Model extends T.Model {
   act(game: Game, player: number, debug: boolean): number {
     const state = new NdArray([1, STATE_SIZE], getState(game, player))
     const logits = this.logits(state)
+    const targetBucket = T.idxMax(logits.data.data, 0, S.nBuckets)
+    const currentBucket = this.bucketise(
+      new NdArray([], [game.paddles[player][0]]),
+    ).data[0]
     if (debug) {
       console.log("agent.buffer.length", this.buffer.length)
       console.log("agent.logits", logits.data.data)
+      console.log("agent.currentBucket", currentBucket)
+      console.log("agent.targetBucket", targetBucket)
     }
-    return T.idxMax(logits.data.data, 0, S.nActions) - 1
+    return Math.sign(targetBucket - currentBucket)
   }
 }
